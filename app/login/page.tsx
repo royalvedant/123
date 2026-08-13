@@ -108,11 +108,6 @@ export default function Login() {
           <Link href="/register" style={styles.signupLink}>Create an account</Link>
         </div>
       </div>
-      
-      {/* Dev helper credentials badge */}
-      <div style={styles.helperBadge}>
-        <strong>Dev Credentials:</strong> login as <code style={styles.code}>CUST100001</code> / <code style={styles.code}>admin123</code>.
-      </div>
     </div>
   );
 }
