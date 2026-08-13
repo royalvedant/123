@@ -18,20 +18,25 @@ export async function GET(request: Request) {
     let users;
     if (query) {
       const searchTerm = `%${query.trim()}%`;
-      users = db.prepare(`
-        SELECT id, fullName, email, role, status, walletBalance, 
-               leftCount, rightCount, matchedPairs, createdAt 
-        FROM Users 
-        WHERE id LIKE ? OR fullName LIKE ? OR email LIKE ? 
-        ORDER BY createdAt DESC
-      `).all(searchTerm, searchTerm, searchTerm.toLowerCase()) as any[];
+      const usersRes = await db.execute({
+        sql: `
+          SELECT id, fullName, email, role, status, walletBalance, 
+                 leftCount, rightCount, matchedPairs, createdAt 
+          FROM Users 
+          WHERE id LIKE ? OR fullName LIKE ? OR email LIKE ? 
+          ORDER BY createdAt DESC
+        `,
+        args: [searchTerm, searchTerm, searchTerm.toLowerCase()]
+      });
+      users = usersRes.rows as any[];
     } else {
-      users = db.prepare(`
+      const usersRes = await db.execute(`
         SELECT id, fullName, email, role, status, walletBalance, 
                leftCount, rightCount, matchedPairs, createdAt 
         FROM Users 
         ORDER BY createdAt DESC
-      `).all() as any[];
+      `);
+      users = usersRes.rows as any[];
     }
 
     return NextResponse.json({ users });
@@ -58,28 +63,35 @@ export async function POST(request: Request) {
     }
 
     // Verify user exists
-    const user = db.prepare('SELECT id FROM Users WHERE id = ?').get(userId) as any;
+    const userRes = await db.execute({
+      sql: 'SELECT id FROM Users WHERE id = ?',
+      args: [userId]
+    });
+    const user = userRes.rows[0] as any;
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Perform updates
-    db.prepare(`
-      UPDATE Users 
-      SET walletBalance = ?, 
-          leftCount = ?, 
-          rightCount = ?, 
-          matchedPairs = ?, 
-          status = ?
-      WHERE id = ?
-    `).run(
-      parseFloat(walletBalance),
-      parseInt(leftCount, 10),
-      parseInt(rightCount, 10),
-      parseInt(matchedPairs, 10),
-      status,
-      userId
-    );
+    await db.execute({
+      sql: `
+        UPDATE Users 
+        SET walletBalance = ?, 
+            leftCount = ?, 
+            rightCount = ?, 
+            matchedPairs = ?, 
+            status = ?
+        WHERE id = ?
+      `,
+      args: [
+        parseFloat(walletBalance),
+        parseInt(leftCount, 10),
+        parseInt(rightCount, 10),
+        parseInt(matchedPairs, 10),
+        status,
+        userId
+      ]
+    });
 
     return NextResponse.json({ success: true, message: 'User details updated successfully' });
   } catch (e: any) {

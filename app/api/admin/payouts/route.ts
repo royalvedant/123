@@ -18,9 +18,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Payout ID and action (approve/reject) are required' }, { status: 400 });
     }
 
-    const runTransaction = db.transaction(() => {
+    const tx = await db.transaction("write");
+    try {
       // Fetch payout details
-      const payout = db.prepare('SELECT * FROM Payouts WHERE id = ?').get(payoutId) as any;
+      const payoutRes = await tx.execute({
+        sql: 'SELECT * FROM Payouts WHERE id = ?',
+        args: [payoutId]
+      });
+      const payout = payoutRes.rows[0] as any;
+      
       if (!payout) {
         throw new Error('Payout request not found');
       }
@@ -31,44 +37,52 @@ export async function POST(request: Request) {
 
       if (action === 'approve') {
         // Update payout status to approved
-        db.prepare(`
-          UPDATE Payouts 
-          SET status = 'approved', processedAt = CURRENT_TIMESTAMP 
-          WHERE id = ?
-        `).run(payoutId);
+        await tx.execute({
+          sql: `
+            UPDATE Payouts 
+            SET status = 'approved', processedAt = CURRENT_TIMESTAMP 
+            WHERE id = ?
+          `,
+          args: [payoutId]
+        });
 
         // Record a debit WITHDRAWAL transaction in the Transactions table
         const txnId = `TXN_WITH_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-        db.prepare(`
-          INSERT INTO Transactions (id, userId, amount, type, description)
-          VALUES (?, ?, ?, 'WITHDRAWAL', ?)
-        `).run(
-          txnId, 
-          payout.userId, 
-          -payout.amount, // Negative indicates balance deduction
-          `Bank withdrawal payout of ₹${payout.amount.toFixed(2)} completed`
-        );
+        await tx.execute({
+          sql: `
+            INSERT INTO Transactions (id, userId, amount, type, description)
+            VALUES (?, ?, ?, 'WITHDRAWAL', ?)
+          `,
+          args: [
+            txnId, 
+            payout.userId, 
+            -payout.amount, // Negative indicates balance deduction
+            `Bank withdrawal payout of ₹${payout.amount.toFixed(2)} completed`
+          ]
+        });
       } else if (action === 'reject') {
         // Update payout status to rejected
-        db.prepare(`
-          UPDATE Payouts 
-          SET status = 'rejected', processedAt = CURRENT_TIMESTAMP 
-          WHERE id = ?
-        `).run(payoutId);
+        await tx.execute({
+          sql: `
+            UPDATE Payouts 
+            SET status = 'rejected', processedAt = CURRENT_TIMESTAMP 
+            WHERE id = ?
+          `,
+          args: [payoutId]
+        });
 
         // Refund the amount back to user's walletBalance
-        db.prepare('UPDATE Users SET walletBalance = walletBalance + ? WHERE id = ?')
-          .run(payout.amount, payout.userId);
+        await tx.execute({
+          sql: 'UPDATE Users SET walletBalance = walletBalance + ? WHERE id = ?',
+          args: [payout.amount, payout.userId]
+        });
       }
 
-      return true;
-    });
-
-    try {
-      runTransaction();
+      await tx.commit();
       return NextResponse.json({ success: true, message: `Payout request ${action}d successfully` });
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message || 'Action failed' }, { status: 400 });
+    } catch (txErr: any) {
+      await tx.rollback();
+      return NextResponse.json({ error: txErr.message || 'Action failed' }, { status: 400 });
     }
   } catch (e: any) {
     console.error('Admin payout update error:', e);

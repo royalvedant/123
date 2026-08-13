@@ -14,11 +14,14 @@ interface TreeNode {
   right?: TreeNode | null;
 }
 
-function isDescendant(childId: string, ancestorId: string): boolean {
+async function isDescendant(childId: string, ancestorId: string): Promise<boolean> {
   let currentId = childId;
-  const getParent = db.prepare('SELECT parentId FROM Users WHERE id = ?');
   while (currentId) {
-    const row = getParent.get(currentId) as any;
+    const res = await db.execute({
+      sql: 'SELECT parentId FROM Users WHERE id = ?',
+      args: [currentId]
+    });
+    const row = res.rows[0] as any;
     if (!row || !row.parentId) break;
     if (row.parentId === ancestorId) return true;
     currentId = row.parentId;
@@ -26,13 +29,17 @@ function isDescendant(childId: string, ancestorId: string): boolean {
   return false;
 }
 
-function getTreeNode(userId: string, depth: number, maxDepth: number): TreeNode | null {
+async function getTreeNode(userId: string, depth: number, maxDepth: number): Promise<TreeNode | null> {
   if (depth > maxDepth) return null;
 
-  const user = db.prepare(`
-    SELECT id, fullName, createdAt, status, role, leftCount, rightCount 
-    FROM Users WHERE id = ?
-  `).get(userId) as any;
+  const res = await db.execute({
+    sql: `
+      SELECT id, fullName, createdAt, status, role, leftCount, rightCount 
+      FROM Users WHERE id = ?
+    `,
+    args: [userId]
+  });
+  const user = res.rows[0] as any;
 
   if (!user) return null;
 
@@ -42,23 +49,27 @@ function getTreeNode(userId: string, depth: number, maxDepth: number): TreeNode 
     createdAt: user.createdAt,
     status: user.status,
     role: user.role,
-    leftCount: user.leftCount,
-    rightCount: user.rightCount,
+    leftCount: user.leftCount as number,
+    rightCount: user.rightCount as number,
     left: null,
     right: null,
   };
 
   if (depth < maxDepth) {
-    const children = db.prepare('SELECT id, position FROM Users WHERE parentId = ?').all(userId) as any[];
+    const childrenRes = await db.execute({
+      sql: 'SELECT id, position FROM Users WHERE parentId = ?',
+      args: [userId]
+    });
+    const children = childrenRes.rows as any[];
     
     const leftChild = children.find(c => c.position === 'LEFT');
     const rightChild = children.find(c => c.position === 'RIGHT');
 
     if (leftChild) {
-      node.left = getTreeNode(leftChild.id, depth + 1, maxDepth);
+      node.left = await getTreeNode(leftChild.id, depth + 1, maxDepth);
     }
     if (rightChild) {
-      node.right = getTreeNode(rightChild.id, depth + 1, maxDepth);
+      node.right = await getTreeNode(rightChild.id, depth + 1, maxDepth);
     }
   }
 
@@ -79,14 +90,18 @@ export async function GET(request: Request) {
 
     if (targetUserId) {
       const trimmedTarget = targetUserId.trim();
-      const targetUser = db.prepare('SELECT id FROM Users WHERE id = ? OR email = ?').get(trimmedTarget, trimmedTarget.toLowerCase()) as any;
+      const targetUserRes = await db.execute({
+        sql: 'SELECT id FROM Users WHERE id = ? OR email = ?',
+        args: [trimmedTarget, trimmedTarget.toLowerCase()]
+      });
+      const targetUser = targetUserRes.rows[0] as any;
       if (!targetUser) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
       
       // Access Control: Only admins can view arbitrary nodes. Users can only view their own downline tree.
       if (session.role !== 'admin' && targetUser.id !== session.userId) {
-        const allowed = isDescendant(targetUser.id, session.userId);
+        const allowed = await isDescendant(targetUser.id, session.userId);
         if (!allowed) {
           return NextResponse.json({ error: 'Forbidden: You can only view your own downline tree structure' }, { status: 403 });
         }
@@ -95,7 +110,7 @@ export async function GET(request: Request) {
     }
 
     // Build the tree (up to 3 levels: Root, children, grandchildren)
-    const tree = getTreeNode(resolvedTargetId, 0, 2);
+    const tree = await getTreeNode(resolvedTargetId, 0, 2);
 
     if (!tree) {
       return NextResponse.json({ error: 'Tree construction failed' }, { status: 500 });
@@ -103,17 +118,23 @@ export async function GET(request: Request) {
 
     // Provide parent details to navigate up
     let parentUsername = null;
-    const currentUser = db.prepare('SELECT parentId FROM Users WHERE id = ?').get(resolvedTargetId) as any;
+    const currentUserRes = await db.execute({
+      sql: 'SELECT parentId FROM Users WHERE id = ?',
+      args: [resolvedTargetId]
+    });
+    const currentUser = currentUserRes.rows[0] as any;
     if (currentUser && currentUser.parentId) {
       // Security check for regular users navigating up: can't go above their session root
       if (session.role === 'admin' || resolvedTargetId !== session.userId) {
         // Can only navigate up if the current node is not the logged-in user's root node
-        const allowedToNavUp = session.role === 'admin' || isDescendant(resolvedTargetId, session.userId) || resolvedTargetId !== session.userId;
+        const allowedToNavUp = session.role === 'admin' || await isDescendant(resolvedTargetId, session.userId) || resolvedTargetId !== session.userId;
         
-        // Wait, if resolvedTargetId is in session's downline, then resolvedTargetId's parent could also be in session's downline or be the session user themselves!
-        // So we allow it if the parent is descendant or equals session user.
-        if (session.role === 'admin' || currentUser.parentId === session.userId || isDescendant(currentUser.parentId, session.userId)) {
-          const parent = db.prepare('SELECT id FROM Users WHERE id = ?').get(currentUser.parentId) as any;
+        if (session.role === 'admin' || currentUser.parentId === session.userId || await isDescendant(currentUser.parentId, session.userId)) {
+          const parentRes = await db.execute({
+            sql: 'SELECT id FROM Users WHERE id = ?',
+            args: [currentUser.parentId]
+          });
+          const parent = parentRes.rows[0] as any;
           if (parent) parentUsername = parent.id;
         }
       }

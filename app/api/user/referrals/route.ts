@@ -9,13 +9,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const referrals = db.prepare(`
-      SELECT u.id, u.fullName, u.email, u.status, u.position, u.createdAt,
-             (SELECT COALESCE(SUM(t.amount), 0.0) FROM Transactions t WHERE t.userId = u.id AND t.type = 'JOINING_FEE') as total_purchases
-      FROM Users u
-      WHERE u.sponsorId = ?
-      ORDER BY u.createdAt DESC
-    `).all(session.userId) as any[];
+    const referralsRes = await db.execute({
+      sql: `
+        SELECT u.id, u.fullName, u.email, u.status, u.position, u.createdAt,
+               (SELECT COALESCE(SUM(t.amount), 0.0) FROM Transactions t WHERE t.userId = u.id AND t.type = 'JOINING_FEE') as total_purchases
+        FROM Users u
+        WHERE u.sponsorId = ?
+        ORDER BY u.createdAt DESC
+      `,
+      args: [session.userId]
+    });
+    
+    const referrals = referralsRes.rows as any[];
 
     return NextResponse.json({ referrals });
   } catch (e: any) {

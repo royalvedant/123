@@ -12,41 +12,54 @@ export async function GET() {
       }, { status: 403 });
     }
 
-    // Platform statistics
-    const totalUsersObj = db.prepare('SELECT COUNT(*) as count FROM Users').get() as any;
-    const activeUsersObj = db.prepare("SELECT COUNT(*) as count FROM Users WHERE status = 'active'").get() as any;
-    const totalSalesObj = db.prepare("SELECT SUM(amount) as sum FROM Transactions WHERE type = 'JOINING_FEE'").get() as any;
-    const totalCommissionsObj = db.prepare("SELECT SUM(amount) as sum FROM Transactions WHERE type = 'PAIR_MATCHING_BONUS'").get() as any;
-    const pendingPayoutsObj = db.prepare("SELECT SUM(amount) as sum FROM Payouts WHERE status = 'pending'").get() as any;
-    const approvedPayoutsObj = db.prepare("SELECT SUM(amount) as sum FROM Payouts WHERE status = 'approved'").get() as any;
+    // Platform statistics (LibSQL client async calls)
+    const totalUsersRes = await db.execute('SELECT COUNT(*) as count FROM Users');
+    const totalUsersObj = totalUsersRes.rows[0] as any;
+
+    const activeUsersRes = await db.execute("SELECT COUNT(*) as count FROM Users WHERE status = 'active'");
+    const activeUsersObj = activeUsersRes.rows[0] as any;
+
+    const totalSalesRes = await db.execute("SELECT SUM(amount) as sum FROM Transactions WHERE type = 'JOINING_FEE'");
+    const totalSalesObj = totalSalesRes.rows[0] as any;
+
+    const totalCommissionsRes = await db.execute("SELECT SUM(amount) as sum FROM Transactions WHERE type = 'PAIR_MATCHING_BONUS'");
+    const totalCommissionsObj = totalCommissionsRes.rows[0] as any;
+
+    const pendingPayoutsRes = await db.execute("SELECT SUM(amount) as sum FROM Payouts WHERE status = 'pending'");
+    const pendingPayoutsObj = pendingPayoutsRes.rows[0] as any;
+
+    const approvedPayoutsRes = await db.execute("SELECT SUM(amount) as sum FROM Payouts WHERE status = 'approved'");
+    const approvedPayoutsObj = approvedPayoutsRes.rows[0] as any;
 
     const stats = {
-      totalUsers: totalUsersObj ? totalUsersObj.count : 0,
-      activeUsers: activeUsersObj ? activeUsersObj.count : 0,
-      totalSales: totalSalesObj && totalSalesObj.sum ? totalSalesObj.sum : 0.0,
-      totalCommissions: totalCommissionsObj && totalCommissionsObj.sum ? totalCommissionsObj.sum : 0.0,
-      pendingPayoutsAmount: pendingPayoutsObj && pendingPayoutsObj.sum ? pendingPayoutsObj.sum : 0.0,
-      approvedPayoutsAmount: approvedPayoutsObj && approvedPayoutsObj.sum ? approvedPayoutsObj.sum : 0.0,
+      totalUsers: totalUsersObj ? Number(totalUsersObj.count) : 0,
+      activeUsers: activeUsersObj ? Number(activeUsersObj.count) : 0,
+      totalSales: totalSalesObj && totalSalesObj.sum ? Number(totalSalesObj.sum) : 0.0,
+      totalCommissions: totalCommissionsObj && totalCommissionsObj.sum ? Number(totalCommissionsObj.sum) : 0.0,
+      pendingPayoutsAmount: pendingPayoutsObj && pendingPayoutsObj.sum ? Number(pendingPayoutsObj.sum) : 0.0,
+      approvedPayoutsAmount: approvedPayoutsObj && approvedPayoutsObj.sum ? Number(approvedPayoutsObj.sum) : 0.0,
     };
 
     // Recent joining fees transactions list
-    const recentPurchases = db.prepare(`
+    const recentPurchasesRes = await db.execute(`
       SELECT t.id, t.amount, t.createdAt, u.fullName as username 
       FROM Transactions t 
       JOIN Users u ON t.userId = u.id 
       WHERE t.type = 'JOINING_FEE'
       ORDER BY t.createdAt DESC 
       LIMIT 5
-    `).all() as any[];
+    `);
+    const recentPurchases = recentPurchasesRes.rows as any[];
 
     // Pending payouts list
-    const pendingPayouts = db.prepare(`
+    const pendingPayoutsResList = await db.execute(`
       SELECT p.id, p.amount, p.createdAt, u.fullName as username, u.email, u.walletBalance as user_current_balance
       FROM Payouts p 
       JOIN Users u ON p.userId = u.id 
       WHERE p.status = 'pending' 
       ORDER BY p.createdAt ASC
-    `).all() as any[];
+    `);
+    const pendingPayouts = pendingPayoutsResList.rows as any[];
 
     return NextResponse.json({
       stats,

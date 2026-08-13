@@ -9,19 +9,27 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const transactions = db.prepare(`
-      SELECT id, type, amount, description, createdAt 
-      FROM Transactions 
-      WHERE userId = ? 
-      ORDER BY createdAt DESC
-    `).all(session.userId) as any[];
+    const transactionsRes = await db.execute({
+      sql: `
+        SELECT id, type, amount, description, createdAt 
+        FROM Transactions 
+        WHERE userId = ? 
+        ORDER BY createdAt DESC
+      `,
+      args: [session.userId]
+    });
+    const transactions = transactionsRes.rows as any[];
 
-    const payouts = db.prepare(`
-      SELECT id, amount, status, createdAt, processedAt 
-      FROM Payouts 
-      WHERE userId = ? 
-      ORDER BY createdAt DESC
-    `).all(session.userId) as any[];
+    const payoutsRes = await db.execute({
+      sql: `
+        SELECT id, amount, status, createdAt, processedAt 
+        FROM Payouts 
+        WHERE userId = ? 
+        ORDER BY createdAt DESC
+      `,
+      args: [session.userId]
+    });
+    const payouts = payoutsRes.rows as any[];
 
     return NextResponse.json({ transactions, payouts });
   } catch (e: any) {

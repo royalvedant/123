@@ -10,12 +10,17 @@ export async function GET(request: Request) {
     }
 
     // Fetch user details from Users table
-    const user = db.prepare(`
-      SELECT id, fullName, email, role, status, walletBalance, 
-             leftCount, rightCount, matchedPairs, 
-             sponsorId, parentId, position, createdAt 
-      FROM Users WHERE id = ?
-    `).get(session.userId) as any;
+    const userRes = await db.execute({
+      sql: `
+        SELECT id, fullName, email, role, status, walletBalance, 
+               leftCount, rightCount, matchedPairs, 
+               sponsorId, parentId, position, createdAt 
+        FROM Users WHERE id = ?
+      `,
+      args: [session.userId]
+    });
+    
+    const user = userRes.rows[0] as any;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -25,7 +30,11 @@ export async function GET(request: Request) {
     let sponsorName = null;
     let sponsorId = null;
     if (user.sponsorId) {
-      const sponsor = db.prepare('SELECT id, fullName FROM Users WHERE id = ?').get(user.sponsorId) as any;
+      const sponsorRes = await db.execute({
+        sql: 'SELECT id, fullName FROM Users WHERE id = ?',
+        args: [user.sponsorId]
+      });
+      const sponsor = sponsorRes.rows[0] as any;
       if (sponsor) {
         sponsorName = sponsor.fullName;
         sponsorId = sponsor.id;
@@ -36,7 +45,11 @@ export async function GET(request: Request) {
     let parentName = null;
     let parentId = null;
     if (user.parentId) {
-      const parent = db.prepare('SELECT id, fullName FROM Users WHERE id = ?').get(user.parentId) as any;
+      const parentRes = await db.execute({
+        sql: 'SELECT id, fullName FROM Users WHERE id = ?',
+        args: [user.parentId]
+      });
+      const parent = parentRes.rows[0] as any;
       if (parent) {
         parentName = parent.fullName;
         parentId = parent.id;
@@ -44,15 +57,20 @@ export async function GET(request: Request) {
     }
 
     // Fetch recent transaction logs (last 5 entries)
-    const recentTransactions = db.prepare(`
-      SELECT id, type, amount, description, createdAt 
-      FROM Transactions 
-      WHERE userId = ? 
-      ORDER BY createdAt DESC 
-      LIMIT 5
-    `).all(user.id) as any[];
+    const recentTransactionsRes = await db.execute({
+      sql: `
+        SELECT id, type, amount, description, createdAt 
+        FROM Transactions 
+        WHERE userId = ? 
+        ORDER BY createdAt DESC 
+        LIMIT 5
+      `,
+      args: [user.id]
+    });
+    
+    const recentTransactions = recentTransactionsRes.rows as any[];
 
-    // Construct the single referral link using the unique CUST ID
+    // Construct the referral link using the unique CUST ID
     const host = request.headers.get('host') || 'localhost:3000';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const referralLink = `${protocol}://${host}/register?sponsor=${user.id}`;

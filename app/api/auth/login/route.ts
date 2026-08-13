@@ -14,8 +14,11 @@ export async function POST(request: Request) {
     const cleanLoginId = loginId.trim().toLowerCase();
 
     // Query user by sequential ID (CUST100xxx) or email address
-    const user = db.prepare('SELECT * FROM Users WHERE id = ? OR email = ?')
-      .get(loginId.trim(), cleanLoginId) as any;
+    const userResult = await db.execute({
+      sql: 'SELECT * FROM Users WHERE id = ? OR email = ?',
+      args: [loginId.trim(), cleanLoginId]
+    });
+    const user = userResult.rows[0] as any;
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid User ID/Email or password' }, { status: 401 });

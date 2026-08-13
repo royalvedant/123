@@ -9,12 +9,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const payouts = db.prepare(`
-      SELECT id, amount, status, createdAt, processedAt 
-      FROM Payouts 
-      WHERE userId = ? 
-      ORDER BY createdAt DESC
-    `).all(session.userId) as any[];
+    const payoutsRes = await db.execute({
+      sql: `
+        SELECT id, amount, status, createdAt, processedAt 
+        FROM Payouts 
+        WHERE userId = ? 
+        ORDER BY createdAt DESC
+      `,
+      args: [session.userId]
+    });
+    
+    const payouts = payoutsRes.rows as any[];
 
     return NextResponse.json({ payouts });
   } catch (e: any) {
@@ -39,9 +44,14 @@ export async function POST(request: Request) {
 
     const userId = session.userId;
 
-    const runTransaction = db.transaction(() => {
+    const tx = await db.transaction("write");
+    try {
       // Fetch user balance
-      const user = db.prepare('SELECT walletBalance FROM Users WHERE id = ?').get(userId) as any;
+      const userRes = await tx.execute({
+        sql: 'SELECT walletBalance FROM Users WHERE id = ?',
+        args: [userId]
+      });
+      const user = userRes.rows[0] as any;
       if (!user) {
         throw new Error('User not found');
       }
@@ -51,23 +61,26 @@ export async function POST(request: Request) {
       }
 
       // Deduct from walletBalance
-      db.prepare('UPDATE Users SET walletBalance = walletBalance - ? WHERE id = ?').run(parsedAmount, userId);
+      await tx.execute({
+        sql: 'UPDATE Users SET walletBalance = walletBalance - ? WHERE id = ?',
+        args: [parsedAmount, userId]
+      });
 
       // Create Payout Entry (Pending withdrawal request)
       const payoutId = `PAY_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      db.prepare(`
-        INSERT INTO Payouts (id, userId, amount, status)
-        VALUES (?, ?, ?, 'pending')
-      `).run(payoutId, userId, parsedAmount);
+      await tx.execute({
+        sql: `
+          INSERT INTO Payouts (id, userId, amount, status)
+          VALUES (?, ?, ?, 'pending')
+        `,
+        args: [payoutId, userId, parsedAmount]
+      });
 
-      return true;
-    });
-
-    try {
-      runTransaction();
+      await tx.commit();
       return NextResponse.json({ success: true, message: 'Withdrawal payout requested successfully' });
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message || 'Withdrawal request failed' }, { status: 400 });
+    } catch (txErr: any) {
+      await tx.rollback();
+      return NextResponse.json({ error: txErr.message || 'Withdrawal request failed' }, { status: 400 });
     }
   } catch (e: any) {
     console.error('Payout request error:', e);
