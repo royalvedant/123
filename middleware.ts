@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('mlm_session')?.value;
   const { pathname } = request.nextUrl;
 
-  let session: { userId: number; username: string; role: string; exp?: number } | null = null;
+  let session: { userId: string; username: string; email: string; role: string; isAdmin: boolean; exp?: number } | null = null;
   
   if (token) {
     session = decodeJwt(token);
@@ -43,8 +43,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If trying to access admin route and is not admin
-  if (isAdminRoute && session && session.role !== 'admin') {
+  // If trying to access admin route and is not authorized admin
+  if (isAdminRoute && session && (session.email !== 'vedantsonawane5012@gmail.com' || !session.isAdmin)) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

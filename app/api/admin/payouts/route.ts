@@ -5,8 +5,11 @@ import db from '@/lib/db';
 export async function POST(request: Request) {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!session || session.email !== 'vedantsonawane5012@gmail.com' || !session.isAdmin) {
+      return NextResponse.json({
+        success: false,
+        message: 'Access Blocked: You do not have permission to access the Admin Panel.'
+      }, { status: 403 });
     }
 
     const { payoutId, action } = await request.json();

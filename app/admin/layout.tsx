@@ -13,7 +13,7 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  if (session.role !== 'admin') {
+  if (session.email !== 'vedantsonawane5012@gmail.com' || !session.isAdmin) {
     redirect('/dashboard');
   }
 

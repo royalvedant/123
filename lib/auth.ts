@@ -7,7 +7,9 @@ const COOKIE_NAME = 'mlm_session';
 export interface UserSession {
   userId: string; // Updated to String to match CUST100001 IDs
   username: string;
+  email: string;
   role: string;
+  isAdmin: boolean;
 }
 
 export function signToken(payload: UserSession): string {

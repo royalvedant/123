@@ -17,7 +17,9 @@ import {
 interface SidebarProps {
   user: {
     username: string;
+    email: string;
     role: string;
+    isAdmin: boolean;
   } | null;
 }
 
@@ -79,7 +81,7 @@ export default function Sidebar({ user }: SidebarProps) {
           })}
         </ul>
 
-        {user && user.role === 'admin' && (
+        {user && user.email === 'vedantsonawane5012@gmail.com' && user.isAdmin && (
           <>
             <div style={styles.sectionLabel}>Administration</div>
             <ul style={styles.navList}>

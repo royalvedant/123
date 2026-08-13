@@ -23,7 +23,8 @@ db.exec(`
     rightCount INTEGER DEFAULT 0,
     matchedPairs INTEGER DEFAULT 0,
     walletBalance REAL DEFAULT 0.00,
-    role TEXT DEFAULT 'user', -- 'user' or 'admin'
+    role TEXT DEFAULT 'USER', -- 'USER' or 'ADMIN'
+    isAdmin INTEGER DEFAULT 0, -- 0 for false, 1 for true
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(sponsorId) REFERENCES Users(id),
     FOREIGN KEY(parentId) REFERENCES Users(id)
@@ -83,11 +84,11 @@ if (!adminUser) {
   const passwordHash = bcrypt.hashSync("admin123", salt);
   
   db.prepare(`
-    INSERT OR IGNORE INTO Users (id, fullName, email, passwordHash, role, status, walletBalance)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run("CUST100001", "Administrator", "admin@mlm.com", passwordHash, "admin", "active", 0.00);
+    INSERT OR IGNORE INTO Users (id, fullName, email, passwordHash, role, isAdmin, status, walletBalance)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run("CUST100001", "Administrator", "vedantsonawane5012@gmail.com", passwordHash, "ADMIN", 1, "active", 0.00);
 
-  console.log("Database initialized. Default admin seeded: CUST100001 / admin123");
+  console.log("Database initialized. Default admin seeded: CUST100001 / admin123 (email: vedantsonawane5012@gmail.com)");
 }
 
 export default db;

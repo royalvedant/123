@@ -91,6 +91,9 @@ export default function AdminDashboard() {
         setStats(json.stats);
         setRecentPurchases(json.recentPurchases);
         setPendingPayouts(json.pendingPayouts);
+      } else if (res.status === 403) {
+        window.location.href = '/dashboard';
+        return;
       }
     } catch (e) {
       console.error('Error fetching admin statistics:', e);
@@ -112,6 +115,9 @@ export default function AdminDashboard() {
       if (res.ok) {
         const json = await res.json();
         setUserList(json.users);
+      } else if (res.status === 403) {
+        window.location.href = '/dashboard';
+        return;
       }
     } catch (e) {
       console.error('Error fetching user directory:', e);

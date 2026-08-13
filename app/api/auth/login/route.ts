@@ -29,7 +29,9 @@ export async function POST(request: Request) {
     const sessionPayload = {
       userId: user.id,
       username: user.fullName, // Using fullName as display name
+      email: user.email,
       role: user.role,
+      isAdmin: user.isAdmin === 1,
     };
 
     // Generate JWT token
