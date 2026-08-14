@@ -49,20 +49,28 @@ export default function LedgerPage() {
 
       // Fetch ledger aggregates (transactions and payouts)
       const res = await fetch('/api/user/ledger', { headers });
-      const json = await res.json();
+      let json: { transactions?: unknown[]; payouts?: unknown[] } = {};
+      const ledgerContentType = res.headers.get('content-type');
+      if (ledgerContentType && ledgerContentType.includes('application/json')) {
+        json = await res.json() as { transactions?: unknown[]; payouts?: unknown[] };
+      }
       
       if (res.ok) {
-        setTransactions(json.transactions);
-        setPayouts(json.payouts);
+        setTransactions(json.transactions || []);
+        setPayouts(json.payouts || []);
       }
 
       // Fetch user details for current balance
       const userRes = await fetch('/api/user/dashboard', { headers });
-      const userJson = await userRes.json();
-      if (userRes.ok) {
+      let userJson: { user?: { walletBalance: number } } = {};
+      const userContentType = userRes.headers.get('content-type');
+      if (userContentType && userContentType.includes('application/json')) {
+        userJson = await userRes.json() as { user?: { walletBalance: number } };
+      }
+      if (userRes.ok && userJson.user) {
         setBalance(userJson.user.walletBalance);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Error fetching ledger details:', e);
     } finally {
       setLoading(false);
@@ -107,17 +115,22 @@ export default function LedgerPage() {
         body: JSON.stringify({ amount }),
       });
       
-      const json = await res.json();
+      let json: { error?: string } = {};
+      const payoutContentType = res.headers.get('content-type');
+      if (payoutContentType && payoutContentType.includes('application/json')) {
+        json = await res.json() as { error?: string };
+      }
       if (!res.ok) {
-        throw new Error(json.error || 'Withdrawal request failed');
+        throw new Error(json.error || `Withdrawal request failed (status: ${res.status})`);
       }
 
       setSuccess(`Withdrawal request for ₹${amount.toFixed(2)} submitted successfully!`);
       setPayoutAmount('');
       // Refresh ledger logs
       await fetchLedgerData();
-    } catch (err: any) {
-      setError(err.message || 'Payment network error');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || 'Payment network error');
     } finally {
       setSubmitLoading(false);
     }

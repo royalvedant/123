@@ -24,10 +24,14 @@ export default function Login() {
         body: JSON.stringify({ loginId, password }),
       });
 
-      const data = await res.json();
+      let data: { error?: string; token?: string } = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json() as { error?: string; token?: string };
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || `Server error during login (status: ${res.status})`);
       }
 
       // Store the token in localStorage for Bearer headers compatibility in fetch calls
@@ -37,8 +41,9 @@ export default function Login() {
 
       router.push('/dashboard');
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || 'Network error');
     } finally {
       setLoading(false);
     }

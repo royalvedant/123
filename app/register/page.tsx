@@ -52,18 +52,23 @@ function RegisterForm() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data: { error?: string; userId?: string } = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json() as { error?: string; userId?: string };
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
+        throw new Error(data.error || `Server error during registration (status: ${res.status})`);
       }
 
       setSuccess(`Account created! Assigned ID is ${data.userId}. Redirecting...`);
       setTimeout(() => {
         router.push('/login');
       }, 2500);
-    } catch (err: any) {
-      setError(err.message || 'Network error');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || 'Network error');
       setLoading(false);
     }
   };

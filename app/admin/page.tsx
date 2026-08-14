@@ -148,16 +148,21 @@ export default function AdminDashboard() {
         body: JSON.stringify({ payoutId, action }),
       });
       
-      const json = await res.json();
+      let json: { error?: string } = {};
+      const payoutContentType = res.headers.get('content-type');
+      if (payoutContentType && payoutContentType.includes('application/json')) {
+        json = await res.json() as { error?: string };
+      }
       if (!res.ok) {
-        throw new Error(json.error || 'Action failed');
+        throw new Error(json.error || `Action failed (status: ${res.status})`);
       }
       
       // Refresh admin logs
       await fetchAdminData();
       await fetchUserDirectory(searchQuery);
-    } catch (e: any) {
-      alert(e.message || 'Error occurred');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      alert(errorMessage || 'Error occurred');
     } finally {
       setPayoutActionLoading(null);
     }
@@ -205,9 +210,13 @@ export default function AdminDashboard() {
         }),
       });
 
-      const json = await res.json();
+      let json: { error?: string } = {};
+      const editContentType = res.headers.get('content-type');
+      if (editContentType && editContentType.includes('application/json')) {
+        json = await res.json() as { error?: string };
+      }
       if (!res.ok) {
-        throw new Error(json.error || 'Failed to update user values');
+        throw new Error(json.error || `Failed to update user values (status: ${res.status})`);
       }
 
       setEditSuccess('User metrics updated successfully!');
@@ -219,8 +228,9 @@ export default function AdminDashboard() {
       setTimeout(() => {
         setEditingUser(null);
       }, 1500);
-    } catch (err: any) {
-      setEditError(err.message || 'Server error');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setEditError(errorMessage || 'Server error');
     } finally {
       setEditLoading(false);
     }
