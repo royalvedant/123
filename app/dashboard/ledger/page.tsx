@@ -49,10 +49,10 @@ export default function LedgerPage() {
 
       // Fetch ledger aggregates (transactions and payouts)
       const res = await fetch('/api/user/ledger', { headers });
-      let json: { transactions?: unknown[]; payouts?: unknown[] } = {};
+      let json: { transactions?: Transaction[]; payouts?: Payout[] } = {};
       const ledgerContentType = res.headers.get('content-type');
       if (ledgerContentType && ledgerContentType.includes('application/json')) {
-        json = await res.json() as { transactions?: unknown[]; payouts?: unknown[] };
+        json = await res.json() as { transactions?: Transaction[]; payouts?: Payout[] };
       }
       
       if (res.ok) {

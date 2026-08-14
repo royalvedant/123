@@ -57,17 +57,17 @@ function BinaryTreeVisualizer() {
       }
       
       const res = await fetch(url, { headers });
-      let json: { error?: string } = {};
+      let json: { error?: string } & Partial<TreeData> = {};
       const treeContentType = res.headers.get('content-type');
       if (treeContentType && treeContentType.includes('application/json')) {
-        json = await res.json() as { error?: string };
+        json = await res.json() as { error?: string } & Partial<TreeData>;
       }
       
       if (!res.ok) {
         throw new Error(json.error || `Failed to fetch tree structure (status: ${res.status})`);
       }
       
-      setData(json);
+      setData(json as TreeData);
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : String(e);
       setError(errorMessage || 'Error loading tree data');

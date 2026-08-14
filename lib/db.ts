@@ -1,10 +1,10 @@
-import { createClient } from '@libsql/client';
+import { createClient, InStatement } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 
 const dbUrl = process.env.TURSO_DATABASE_URL || 'file:mlm.db';
 const dbToken = process.env.TURSO_AUTH_TOKEN;
 
-const db = createClient({
+const client = createClient({
   url: dbUrl,
   authToken: dbToken,
 });
@@ -12,7 +12,7 @@ const db = createClient({
 export async function initDb() {
   try {
     // Create Users table
-    await db.execute(`
+    await client.execute(`
       CREATE TABLE IF NOT EXISTS Users (
         id TEXT PRIMARY KEY,
         fullName TEXT NOT NULL,
@@ -35,7 +35,7 @@ export async function initDb() {
     `);
 
     // Create Transactions table
-    await db.execute(`
+    await client.execute(`
       CREATE TABLE IF NOT EXISTS Transactions (
         id TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
@@ -48,7 +48,7 @@ export async function initDb() {
     `);
 
     // Create Payouts table
-    await db.execute(`
+    await client.execute(`
       CREATE TABLE IF NOT EXISTS Payouts (
         id TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
@@ -61,12 +61,12 @@ export async function initDb() {
     `);
 
     // Create Indexes
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_Users_parentId ON Users(parentId);`);
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_Users_sponsorId ON Users(sponsorId);`);
-    await db.execute(`CREATE INDEX IF NOT EXISTS idx_Transactions_userId ON Transactions(userId);`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_Users_parentId ON Users(parentId);`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_Users_sponsorId ON Users(sponsorId);`);
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_Transactions_userId ON Transactions(userId);`);
 
     // Seed admin/root user if empty
-    const checkAdmin = await db.execute({
+    const checkAdmin = await client.execute({
       sql: 'SELECT * FROM Users WHERE id = ?',
       args: ['CUST100001']
     });
@@ -75,7 +75,7 @@ export async function initDb() {
       const salt = bcrypt.genSaltSync(10);
       const passwordHash = bcrypt.hashSync("admin123", salt);
       
-      await db.execute({
+      await client.execute({
         sql: `
           INSERT INTO Users (id, fullName, email, passwordHash, role, isAdmin, status, walletBalance)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -90,13 +90,34 @@ export async function initDb() {
   }
 }
 
-// Initialize on import
-initDb();
+let initPromise: Promise<void> | null = null;
+
+export async function ensureDbInitialized() {
+  if (!initPromise) {
+    initPromise = initDb();
+  }
+  await initPromise;
+}
+
+const db = {
+  async execute(config: InStatement) {
+    await ensureDbInitialized();
+    return client.execute(config);
+  },
+  async batch(stmts: InStatement[], mode?: "write" | "read") {
+    await ensureDbInitialized();
+    return client.batch(stmts, mode);
+  },
+  async transaction(mode?: "write" | "read") {
+    await ensureDbInitialized();
+    return client.transaction(mode);
+  }
+};
 
 export async function generateNextCustomerId(): Promise<string> {
   try {
     const res = await db.execute("SELECT id FROM Users WHERE id LIKE 'CUST%' ORDER BY id DESC LIMIT 1");
-    const row = res.rows[0] as any;
+    const row = res.rows[0] as unknown as { id: string } | undefined;
     if (!row) return 'CUST100001';
     const numericPart = parseInt(row.id.replace('CUST', ''), 10);
     if (isNaN(numericPart)) {
