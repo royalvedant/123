@@ -32,6 +32,21 @@ interface TreeData {
   parentUsername: string | null; // A CUST ID parent path
 }
 
+function decodeJwt(token: string) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
 function BinaryTreeVisualizer() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,6 +56,20 @@ function BinaryTreeVisualizer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  
+  // Admin Management State
+  const [currentUser, setCurrentUser] = useState<{
+    userId: string;
+    username: string;
+    email: string;
+    role: string;
+    isAdmin: boolean;
+  } | null>(null);
+  const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   const targetUserId = searchParams.get('userId') || '';
 
@@ -80,6 +109,55 @@ function BinaryTreeVisualizer() {
   useEffect(() => {
     fetchTreeData(targetUserId);
   }, [targetUserId]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('mlm_token');
+    if (token) {
+      const decoded = decodeJwt(token);
+      setCurrentUser(decoded);
+    }
+  }, []);
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedNode) return;
+    
+    setResetLoading(true);
+    setResetSuccess('');
+    setResetError('');
+
+    try {
+      const token = localStorage.getItem('mlm_token');
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          userId: selectedNode.id,
+          newPassword: newPassword,
+        }),
+      });
+
+      let json: { error?: string } = {};
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        json = await res.json() as { error?: string };
+      }
+      if (!res.ok) {
+        throw new Error(json.error || `Reset failed (status: ${res.status})`);
+      }
+
+      setResetSuccess('Password updated successfully!');
+      setNewPassword('');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setResetError(errorMessage || 'Server error');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,12 +254,37 @@ function BinaryTreeVisualizer() {
               <span className="badge badge-active" style={{ fontSize: '0.625rem', padding: '1px 6px' }}>
                 Active
               </span>
-              <button 
-                onClick={() => handleNavigate(node.id)} 
-                style={styles.exploreTextLink}
-              >
-                Explore
-              </button>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {currentUser && currentUser.isAdmin && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedNode(node);
+                      setNewPassword('');
+                      setResetSuccess('');
+                      setResetError('');
+                    }}
+                    style={{
+                      backgroundColor: '#eff6ff',
+                      color: '#2563eb',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '4px',
+                      padding: '2px 6px',
+                      fontSize: '0.625rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Manage ⚙️
+                  </button>
+                )}
+                <button 
+                  onClick={() => handleNavigate(node.id)} 
+                  style={styles.exploreTextLink}
+                >
+                  Explore
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -376,6 +479,63 @@ function BinaryTreeVisualizer() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem', color: '#475569' }}>
             <span>• Empty slots render a placement link redirecting to register new members under that direct parent.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Management Modal */}
+      {selectedNode && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Manage Member: {selectedNode.fullName}</h3>
+              <button 
+                onClick={() => setSelectedNode(null)}
+                style={styles.modalCloseBtn}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={styles.modalBody}>
+              <p><strong>User ID:</strong> {selectedNode.id}</p>
+              <p><strong>Joined:</strong> {new Date(selectedNode.createdAt).toLocaleDateString('en-US')}</p>
+              <p><strong>Status:</strong> {selectedNode.status.toUpperCase()}</p>
+              <p><strong>Subtree Left Count:</strong> {selectedNode.leftCount}</p>
+              <p><strong>Subtree Right Count:</strong> {selectedNode.rightCount}</p>
+
+              {resetSuccess && (
+                <div className="alert alert-success" style={{ marginTop: '1rem', padding: '8px', fontSize: '0.8rem' }}>
+                  {resetSuccess}
+                </div>
+              )}
+              {resetError && (
+                <div className="alert alert-danger" style={{ marginTop: '1rem', padding: '8px', fontSize: '0.8rem' }}>
+                  {resetError}
+                </div>
+              )}
+
+              <form onSubmit={handlePasswordReset} style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                <label className="input-label" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Assign New Password</label>
+                <input 
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-field"
+                  required
+                  style={{ marginTop: '0.5rem', width: '100%' }}
+                />
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={resetLoading}
+                  style={{ width: '100%', marginTop: '1rem' }}
+                >
+                  {resetLoading ? 'Updating...' : 'Update Password'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -656,5 +816,57 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '2px',
     height: '24px',
     backgroundColor: '#cbd5e1',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem',
+    zIndex: 1000,
+  },
+  modalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    maxWidth: '400px',
+    width: '100%',
+    padding: '1.5rem',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    border: '1px solid #e2e8f0',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: '0.75rem',
+    borderBottom: '1px solid #f1f5f9',
+    marginBottom: '1rem',
+  },
+  modalTitle: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: '#0f172a',
+    margin: 0,
+  },
+  modalCloseBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '1.25rem',
+    color: '#94a3b8',
+    cursor: 'pointer',
+    padding: '4px',
+  },
+  modalBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    fontSize: '0.875rem',
+    color: '#475569',
   },
 };

@@ -63,15 +63,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    // Verify user exists
+    // Verify user exists and get current values for partial fallback
     const userRes = await db.execute({
-      sql: 'SELECT id FROM Users WHERE id = ?',
+      sql: 'SELECT id, walletBalance, leftCount, rightCount, matchedPairs, status FROM Users WHERE id = ?',
       args: [userId]
     });
     const user = userRes.rows[0] as any;
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const targetBalance = walletBalance !== undefined ? parseFloat(walletBalance) : user.walletBalance;
+    const targetLeft = leftCount !== undefined ? parseInt(leftCount, 10) : user.leftCount;
+    const targetRight = rightCount !== undefined ? parseInt(rightCount, 10) : user.rightCount;
+    const targetMatched = matchedPairs !== undefined ? parseInt(matchedPairs, 10) : user.matchedPairs;
+    const targetStatus = status !== undefined ? status : user.status;
 
     // Perform updates
     if (newPassword && newPassword.trim().length > 0) {
@@ -89,11 +95,11 @@ export async function POST(request: Request) {
           WHERE id = ?
         `,
         args: [
-          parseFloat(walletBalance),
-          parseInt(leftCount, 10),
-          parseInt(rightCount, 10),
-          parseInt(matchedPairs, 10),
-          status,
+          targetBalance,
+          targetLeft,
+          targetRight,
+          targetMatched,
+          targetStatus,
           passwordHash,
           userId
         ]
@@ -110,11 +116,11 @@ export async function POST(request: Request) {
           WHERE id = ?
         `,
         args: [
-          parseFloat(walletBalance),
-          parseInt(leftCount, 10),
-          parseInt(rightCount, 10),
-          parseInt(matchedPairs, 10),
-          status,
+          targetBalance,
+          targetLeft,
+          targetRight,
+          targetMatched,
+          targetStatus,
           userId
         ]
       });
