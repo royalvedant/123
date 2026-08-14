@@ -1,8 +1,8 @@
 import { createClient, InStatement } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 
-const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
-const defaultDbUrl = isVercel ? 'file:/tmp/mlm.db' : 'file:mlm.db';
+const isServerless = process.env.VERCEL === '1' || !!process.env.VERCEL || process.env.NETLIFY === 'true' || !!process.env.NETLIFY || !!process.env.LAMBDA_TASK_ROOT;
+const defaultDbUrl = isServerless ? 'file:/tmp/mlm.db' : 'file:mlm.db';
 const dbUrl = process.env.TURSO_DATABASE_URL || defaultDbUrl;
 const dbToken = process.env.TURSO_AUTH_TOKEN;
 
