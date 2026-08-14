@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request: Request) {
   try {
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    const { userId, walletBalance, leftCount, rightCount, matchedPairs, status } = await request.json();
+    const { userId, walletBalance, leftCount, rightCount, matchedPairs, status, newPassword } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -73,25 +74,51 @@ export async function POST(request: Request) {
     }
 
     // Perform updates
-    await db.execute({
-      sql: `
-        UPDATE Users 
-        SET walletBalance = ?, 
-            leftCount = ?, 
-            rightCount = ?, 
-            matchedPairs = ?, 
-            status = ?
-        WHERE id = ?
-      `,
-      args: [
-        parseFloat(walletBalance),
-        parseInt(leftCount, 10),
-        parseInt(rightCount, 10),
-        parseInt(matchedPairs, 10),
-        status,
-        userId
-      ]
-    });
+    if (newPassword && newPassword.trim().length > 0) {
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHash = bcrypt.hashSync(newPassword.trim(), salt);
+      await db.execute({
+        sql: `
+          UPDATE Users 
+          SET walletBalance = ?, 
+              leftCount = ?, 
+              rightCount = ?, 
+              matchedPairs = ?, 
+              status = ?,
+              passwordHash = ?
+          WHERE id = ?
+        `,
+        args: [
+          parseFloat(walletBalance),
+          parseInt(leftCount, 10),
+          parseInt(rightCount, 10),
+          parseInt(matchedPairs, 10),
+          status,
+          passwordHash,
+          userId
+        ]
+      });
+    } else {
+      await db.execute({
+        sql: `
+          UPDATE Users 
+          SET walletBalance = ?, 
+              leftCount = ?, 
+              rightCount = ?, 
+              matchedPairs = ?, 
+              status = ?
+          WHERE id = ?
+        `,
+        args: [
+          parseFloat(walletBalance),
+          parseInt(leftCount, 10),
+          parseInt(rightCount, 10),
+          parseInt(matchedPairs, 10),
+          status,
+          userId
+        ]
+      });
+    }
 
     return NextResponse.json({ success: true, message: 'User details updated successfully' });
   } catch (e: any) {

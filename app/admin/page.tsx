@@ -72,6 +72,7 @@ export default function AdminDashboard() {
   const [editRightCount, setEditRightCount] = useState('');
   const [editMatchedPairs, setEditMatchedPairs] = useState('');
   const [editStatus, setEditStatus] = useState('active');
+  const [editPassword, setEditPassword] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editSuccess, setEditSuccess] = useState('');
   const [editError, setEditError] = useState('');
@@ -175,6 +176,7 @@ export default function AdminDashboard() {
     setEditRightCount(user.rightCount.toString());
     setEditMatchedPairs(user.matchedPairs.toString());
     setEditStatus(user.status);
+    setEditPassword('');
     setEditSuccess('');
     setEditError('');
   };
@@ -207,6 +209,7 @@ export default function AdminDashboard() {
           rightCount: parseInt(editRightCount, 10),
           matchedPairs: parseInt(editMatchedPairs, 10),
           status: editStatus,
+          newPassword: editPassword,
         }),
       });
 
@@ -554,6 +557,18 @@ export default function AdminDashboard() {
                     value={editMatchedPairs} 
                     onChange={(e) => setEditMatchedPairs(e.target.value)} 
                     required 
+                  />
+                </div>
+
+                {/* Reset Password */}
+                <div className="input-group">
+                  <label className="input-label">Reset Password (leave blank to keep current)</label>
+                  <input 
+                    type="password" 
+                    className="input-field"
+                    placeholder="Enter new password"
+                    value={editPassword} 
+                    onChange={(e) => setEditPassword(e.target.value)} 
                   />
                 </div>
 
