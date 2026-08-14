@@ -100,7 +100,7 @@ export async function GET(request: Request) {
       }
       
       // Access Control: Only admins can view arbitrary nodes. Users can only view their own downline tree.
-      if (session.role !== 'admin' && targetUser.id !== session.userId) {
+      if (!session.isAdmin && targetUser.id !== session.userId) {
         const allowed = await isDescendant(targetUser.id, session.userId);
         if (!allowed) {
           return NextResponse.json({ error: 'Forbidden: You can only view your own downline tree structure' }, { status: 403 });
@@ -125,11 +125,11 @@ export async function GET(request: Request) {
     const currentUser = currentUserRes.rows[0] as any;
     if (currentUser && currentUser.parentId) {
       // Security check for regular users navigating up: can't go above their session root
-      if (session.role === 'admin' || resolvedTargetId !== session.userId) {
+      if (session.isAdmin || resolvedTargetId !== session.userId) {
         // Can only navigate up if the current node is not the logged-in user's root node
-        const allowedToNavUp = session.role === 'admin' || await isDescendant(resolvedTargetId, session.userId) || resolvedTargetId !== session.userId;
+        const allowedToNavUp = session.isAdmin || await isDescendant(resolvedTargetId, session.userId) || resolvedTargetId !== session.userId;
         
-        if (session.role === 'admin' || currentUser.parentId === session.userId || await isDescendant(currentUser.parentId, session.userId)) {
+        if (session.isAdmin || currentUser.parentId === session.userId || await isDescendant(currentUser.parentId, session.userId)) {
           const parentRes = await db.execute({
             sql: 'SELECT id FROM Users WHERE id = ?',
             args: [currentUser.parentId]

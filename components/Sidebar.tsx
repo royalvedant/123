@@ -114,7 +114,7 @@ export default function Sidebar({ user }: SidebarProps) {
           <div style={styles.profileText}>
             <div style={styles.username}>{user ? user.username : 'User'}</div>
             <div style={styles.roleBadge}>
-              {user ? (user.role === 'admin' ? 'System Administrator' : 'Independent Distributor') : ''}
+              {user ? (user.isAdmin ? 'System Administrator' : 'Independent Distributor') : ''}
             </div>
           </div>
         </div>
