@@ -78,6 +78,10 @@ function BinaryTreeVisualizer() {
       setLoading(true);
       setError('');
       const token = localStorage.getItem('mlm_token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
       const url = userId ? `/api/user/tree?userId=${encodeURIComponent(userId)}` : '/api/user/tree';
       
       const headers: Record<string, string> = {};
