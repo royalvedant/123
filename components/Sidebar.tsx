@@ -51,7 +51,7 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* Brand Logo */}
       <div style={styles.brand}>
         <Network size={22} color="#2563eb" style={{ marginRight: '8px' }} />
-        <span style={styles.brandName}>Aura Portal</span>
+        <span style={styles.brandName}>NIGHT DREAM Portal</span>
       </div>
 
       {/* Navigation */}

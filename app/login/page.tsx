@@ -56,7 +56,7 @@ export default function Login() {
           <div style={styles.logoWrapper}>
             <Network size={28} color="#2563eb" />
           </div>
-          <h1 style={styles.title}>Sign in to Aura</h1>
+          <h1 style={styles.title}>Sign in to NIGHT DREAM</h1>
           <p style={styles.subtitle}>Enter your Customer ID / Email and password</p>
         </div>
 
@@ -109,7 +109,7 @@ export default function Login() {
         </form>
 
         <div style={styles.footer}>
-          <span style={styles.footerText}>New to Aura?</span>
+          <span style={styles.footerText}>New to NIGHT DREAM?</span>
           <Link href="/register" style={styles.signupLink}>Create an account</Link>
         </div>
       </div>

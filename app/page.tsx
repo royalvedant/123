@@ -11,7 +11,7 @@ export default function Home() {
         <div style={styles.headerInner}>
           <div style={styles.logoContainer}>
             <Network size={22} color="#2563eb" style={{ marginRight: '8px' }} />
-            <span style={styles.logoText}>Aura Network</span>
+            <span style={styles.logoText}>NIGHT DREAM</span>
           </div>
           <div style={styles.navLinks}>
             <Link href="/login" style={styles.navLink}>Portal Dashboard</Link>
@@ -141,7 +141,7 @@ export default function Home() {
       {/* Footer */}
       <footer style={styles.footer}>
         <div style={styles.footerInner}>
-          <span>© 2026 Aura Network. All rights reserved. Secure Binary Network Engine.</span>
+          <span>© 2026 NIGHT DREAM. All rights reserved. Secure Binary Network Engine.</span>
           <div style={styles.footerLinks}>
             <Link href="/login" style={styles.footerLink}>User Portal</Link>
             <Link href="/register" style={styles.footerLink}>Registration</Link>
