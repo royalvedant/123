@@ -93,6 +93,11 @@ function BinaryTreeVisualizer() {
       }
       
       if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem('mlm_token');
+          router.push('/login');
+          return;
+        }
         throw new Error(json.error || `Failed to fetch tree structure (status: ${res.status})`);
       }
       

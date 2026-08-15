@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 interface TreeNode {
   id: string;
   fullName: string;
@@ -107,13 +109,22 @@ export async function GET(request: Request) {
         }
       }
       resolvedTargetId = targetUser.id;
+    } else {
+      // Validate that the session user actually exists in the database
+      const sessionUserRes = await db.execute({
+        sql: 'SELECT id FROM Users WHERE id = ?',
+        args: [session.userId]
+      });
+      if (sessionUserRes.rows.length === 0) {
+        return NextResponse.json({ error: 'Unauthorized: Session user does not exist' }, { status: 401 });
+      }
     }
 
     // Build the tree (up to 3 levels: Root, children, grandchildren)
     const tree = await getTreeNode(resolvedTargetId, 0, 2);
 
     if (!tree) {
-      return NextResponse.json({ error: 'Tree construction failed' }, { status: 500 });
+      return NextResponse.json({ error: 'User tree not found' }, { status: 404 });
     }
 
     // Provide parent details to navigate up
