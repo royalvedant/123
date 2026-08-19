@@ -15,12 +15,12 @@ function decodeJwt(token: string) {
   }
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('mlm_session')?.value;
   const { pathname } = request.nextUrl;
 
   let session: { userId: string; username: string; email: string; role: string; isAdmin: boolean; exp?: number } | null = null;
-  
+
   if (token) {
     session = decodeJwt(token);
     // Check if expired
