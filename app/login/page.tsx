@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Network, Lock, User, AlertCircle, RefreshCw } from 'lucide-react';
+import { Network, Lock, User, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -91,14 +92,26 @@ export default function Login() {
               <Lock size={16} color="#64748b" style={styles.inputIcon} />
               <input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className="input-field"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ paddingLeft: '2.25rem', width: '100%' }}
+                style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem', width: '100%' }}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <EyeOff size={16} color="#64748b" />
+                ) : (
+                  <Eye size={16} color="#64748b" />
+                )}
+              </button>
             </div>
           </div>
 
@@ -186,6 +199,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: 'absolute',
     left: '0.875rem',
     pointerEvents: 'none',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: '0.875rem',
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   submitBtn: {
     width: '100%',
