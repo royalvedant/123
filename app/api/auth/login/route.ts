@@ -56,6 +56,8 @@ export async function POST(request: Request) {
     });
   } catch (e: any) {
     console.error('Login API error:', e);
-    return NextResponse.json({ error: 'Server error during login' }, { status: 500 });
+    return NextResponse.json({ 
+      error: `Server error: ${e.message}. Stack: ${e.stack}` 
+    }, { status: 500 });
   }
 }
