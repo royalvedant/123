@@ -29,10 +29,7 @@ export default function Home() {
           <div style={styles.badgeContainer}>
             <span style={styles.heroBadge}>Platform Launch 2026</span>
           </div>
-          <h1 style={styles.heroTitle}>
-            The Modern Engine for <br />
-            <span style={styles.heroAccent}>Binary MLM Networks</span>
-          </h1>
+          <h1 data-w-id="ea89f815-6d69-171e-b469-86bb11163d8f" style="transform: translate3d(0px, 0%, 0px) scale3d(1, 1, 1) rotateX(0deg) rotateY(0deg) rotateZ(0deg) skew(0deg, 0deg); transform-style: preserve-3d; opacity: 1; filter: blur(0px);" class="heading-one is-large"><span class="heading-span">Works that </span>driving grwoth</h1>
           <p style={styles.heroSubtitle}>
             A secure, real-time customer portal and administration console designed for high-performance networks. Trace volumes, manage downlines, and distribute payouts with complete transparency.
           </p>
@@ -49,7 +46,7 @@ export default function Home() {
           <h2 style={styles.sectionTitle}>Engineered for Growth & Trust</h2>
           <p style={styles.sectionSubtitle}>Everything you need to run, scale, and visualize your MLM organization.</p>
         </div>
-        
+
         <div style={styles.featuresGrid}>
           <div style={styles.featureCard}>
             <div style={styles.iconWrapper}>
