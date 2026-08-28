@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Night Dream — Night Dream</title>
+  <meta name="description"
+    content="Night Dream AI turns any photo into a hand-drawn cartoon in seconds. Instant. Effortless. Everyone's an artist."
+    data-draftly-seo="description">
+  <meta property="og:title" content="Night Dream — Night Dream">
+  <meta property="og:description" content="Turn any photo into a Night Dream. A universe without limits.">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23fff'/%3E%3Ctext x='16' y='22' font-family='Arial Black,Arial' font-weight='900' font-size='15' text-anchor='middle' fill='%23000'%3EAI%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Chewy&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="assets/vendor/lenis.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ═══ svg defs: cartoon (posterize) filter, neon gradients ═══ -->
+  <svg class="svgdefs" aria-hidden="true" focusable="false">
+    <defs>
+      <!-- "Night Dream" look: boost saturation, posterize to 5 levels, slight edge darken -->
+      <filter id="toon" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="1.9" result="sat" />
+        <feComponentTransfer in="sat" result="post">
+          <feFuncR type="discrete" tableValues="0.08 0.3 0.52 0.74 0.96" />
+          <feFuncG type="discrete" tableValues="0.08 0.3 0.52 0.74 0.96" />
+          <feFuncB type="discrete" tableValues="0.1 0.32 0.55 0.78 1" />
+        </feComponentTransfer>
+        <feMorphology in="post" operator="erode" radius="1" result="er" />
+        <feComposite in="er" in2="post" operator="arithmetic" k1="0" k2="0.55" k3="0.45" k4="0" />
+      </filter>
+      <linearGradient id="neon" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#7ec6ff" />
+        <stop offset=".35" stop-color="#7dffb2" />
+        <stop offset=".65" stop-color="#ffe86a" />
+        <stop offset="1" stop-color="#ff8ad4" />
+      </linearGradient>
+      <linearGradient id="neon2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#b18cff" />
+        <stop offset=".5" stop-color="#7ec6ff" />
+        <stop offset="1" stop-color="#7dffb2" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- ═══ preloader = "introducing → Oodles → AI" title card ═══ -->
+  <div class="pre" id="pre" aria-hidden="true">
+    <div class="pre__intro" id="preIntro">
+      <span class="pre__word" id="preWord"></span>
+    </div>
+    <div class="pre__brand" id="preBrand">
+      <span class="mark" id="preMark"><i>N</i><i>I</i><i>G</i><i>H</i><i>T</i></span>
+      <span class="badge" id="preBadge"><b>DREAM</b>
+        <i class="cf cf1"></i><i class="cf cf2"></i><i class="cf cf3"></i><i class="cf cf4"></i><i class="cf cf5"></i>
+      </span>
+    </div>
+    <button class="pre__skip" id="preSkip">skip</button>
+  </div>
+
+  <!-- ═══ cursor ═══ -->
+  <div class="cur" id="cur" aria-hidden="true"></div>
+  <div class="cur-ring" id="curRing" aria-hidden="true"><span id="curLabel"></span></div>
+
+  <!-- ═══ HUD ═══ -->
+  <header class="hud" id="hud">
+    <a class="hud__brand" href="#top" aria-label="Night Dream AI, home" data-draftly-id="brand"><span class="mark">Night
+        Dream</span><span class="badge"><b>AI</b></span></a>
+    <nav class="hud__nav" aria-label="Primary">
+      <a href="#reimagine">ALREADY A USER</a><a href="#wall">styles</a><a href="#universe">worlds</a><a
+        href="/login">SIGN IN</a>
+    </nav>
+    <a class="hud__cta pill" href="/login" data-cursor="download">SIGN IN</a>
+  </header>
+  <div class="rail" aria-hidden="true"><i id="railFill"></i></div>
+
+  <main id="top">
+
+    <!-- ══════ 00 · HOME: live photo-sphere (auto-rotates, drag to spin, hover to lift, click to view) ══════ -->
+    <section class="sec home" id="home" data-draftly-section-id="home">
+      <div class="stage">
+        <div class="home__glow" aria-hidden="true"></div>
+        <div class="sphere__scene" id="scene" data-cursor="drag">
+          <div class="sphere__ball" id="ball"></div>
+        </div>
+        <div class="home__copy" id="homeCopy">
+          <p class="home__eyebrow"><i></i><em>introducing Night Dream</em></p>
+          <h1 class="home__h1" data-draftly-id="hero-heading">NIGHT<br>DREAM</h1>
+          <p class="home__sub" data-draftly-id="hero-sub">Shop Premium Essentials. Activate Lifetime Dual-Team Rewards.
+          </p>
+          <div class="home__btns">
+            <a class="pill pill--white" href="/login" data-cursor="download">SIGN IN</a>
+            <a class="pill" href="#reimagine" data-cursor="watch">ALERADY A USER</a>
+          </div>
+          <p class="home__stat" id="homeStat"><b>2.4M</b> Night Dream made this week<span class="home__hint"> · drag the
+              sphere · click a Night Dream</span></p>
+        </div>
+        <div class="scrollcue" aria-hidden="true"><span>scroll</span><i></i></div>
+      </div>
+    </section>
+
+    <!-- ══════ 01 · REIMAGINE: phone → reimagine → cartoon → chip → squiggle → "Night Dream" ══════ -->
+    <section class="sec hero" id="reimagine" data-draftly-section-id="reimagine">
+      <div class="stage">
+        <div class="hero__ground" id="heroGround"></div>
+
+        <div class="phone" id="phone">
+          <div class="phone__screen">
+            <img data-draftly-asset-id="img-1"
+              data-draftly-default-src="https://picsum.photos/seed/oodles-people/900/1600" class="phone__img"
+              id="phoneImg" src="https://picsum.photos/seed/oodles-people/900/1600" alt="">
+            <img data-draftly-asset-id="img-2"
+              data-draftly-default-src="https://picsum.photos/seed/oodles-people/900/1600"
+              class="phone__img phone__img--toon" id="phoneToon" src="https://picsum.photos/seed/oodles-people/900/1600"
+              alt="">
+            <div class="wash" id="phoneWash"></div>
+            <span class="glass-pill" id="reimaginePill">reimagine</span>
+          </div>
+        </div>
+
+        <div class="toonplate" id="toonPlate">
+          <img data-draftly-asset-id="img-3"
+            data-draftly-default-src="https://picsum.photos/seed/oodles-people/1600/900"
+            src="https://picsum.photos/seed/oodles-people/1600/900" alt="Cartoon version of the friends.">
+          <i class="toonplate__rim"></i>
+        </div>
+
+        <svg class="squiggle" id="squiggle1" viewBox="0 0 800 800" aria-hidden="true">
+          <path
+            d="M170 700 C 60 640, 90 480, 220 470 C 350 460, 300 620, 410 610 C 520 600, 480 380, 560 320 C 640 260, 700 300, 660 250"
+            fill="none" stroke="url(#neon)" stroke-width="26" stroke-linecap="round" />
+        </svg>
+
+        <h2 class="ai-text" id="aiText" data-draftly-id="reimagine-heading">Night Dream</h2>
+      </div>
+    </section>
+
+    <!-- ══════ 02 · BEFORE / AFTER GLASS SQUARES ══════ -->
+    <section class="sec demo" id="demo" data-draftly-section-id="demo">
+      <div class="stage">
+        <div class="demo__beat" id="beatA">
+          <img data-draftly-asset-id="img-4" data-draftly-default-src="https://picsum.photos/seed/oodles-neon/1600/900"
+            class="demo__bg" src="https://picsum.photos/seed/oodles-neon/1600/900"
+            alt="A woman in a shopping cart on a blue tennis court.">
+          <div class="glass" id="glassA">
+            <img data-draftly-asset-id="img-5"
+              data-draftly-default-src="https://picsum.photos/seed/oodles-neon/1000/1000" class="glass__img"
+              src="https://picsum.photos/seed/oodles-neon/1000/1000" alt="">
+            <img data-draftly-asset-id="img-6"
+              data-draftly-default-src="https://picsum.photos/seed/oodles-neon/1000/1000"
+              class="glass__img glass__img--toon" src="https://picsum.photos/seed/oodles-neon/1000/1000" alt="">
+            <div class="wash"></div>
+          </div>
+        </div>
+        <div class="demo__beat" id="beatB">
+          <img data-draftly-asset-id="img-7" data-draftly-default-src="https://picsum.photos/seed/oodles-bike/1600/900"
+            class="demo__bg" src="https://picsum.photos/seed/oodles-bike/1600/900"
+            alt="A girl sitting in front of a rainbow-striped shutter.">
+          <div class="glass" id="glassB">
+            <img data-draftly-asset-id="img-8"
+              data-draftly-default-src="https://picsum.photos/seed/oodles-bike/1000/1000" class="glass__img"
+              src="https://picsum.photos/seed/oodles-bike/1000/1000" alt="">
+            <img data-draftly-asset-id="img-9"
+              data-draftly-default-src="https://picsum.photos/seed/oodles-bike/1000/1000"
+              class="glass__img glass__img--toon" src="https://picsum.photos/seed/oodles-bike/1000/1000" alt="">
+            <div class="wash"></div>
+          </div>
+        </div>
+        <p class="demo__cap" id="demoCap"><span>photo</span><i></i><span>Night Dream</span></p>
+      </div>
+    </section>
+
+    <!-- ══════ 03 · TILE WALL: instant. / effortless. ══════ -->
+    <section class="sec wall" id="wall" data-draftly-section-id="wall">
+      <div class="stage">
+        <div class="wall__grid wall__grid--a" id="wallA"></div>
+        <div class="wall__grid wall__grid--b" id="wallB"></div>
+        <span class="glass-pill glass-pill--lg" id="wallPill"><em>instant.</em></span>
+      </div>
+    </section>
+
+    <!-- ══════ 04 · WORD WHEEL: everyone's an artist ══════ -->
+    <section class="sec wheel" id="wheel" data-draftly-section-id="wheel">
+      <div class="stage">
+        <div class="wheel__row" id="wheelRow">
+          <h2 class="wheel__lead" id="wheelLead" data-draftly-id="wheel-heading">everyone's an</h2>
+          <div class="wheel__col" id="wheelCol">
+            <span style="--c:#ff8ad4">creator</span>
+            <span style="--c:#ffb27a">author</span>
+            <span style="--c:#ffe86a">designer</span>
+            <span style="--c:#7dffb2">illustrator</span>
+            <span class="is-hero" style="--c:#fff">artist</span>
+            <span style="--c:#7ec6ff">painter</span>
+            <span style="--c:#b18cff">dreamer</span>
+            <span style="--c:#ff8ad4">creative</span>
+            <span style="--c:#ffb27a">director</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ 05 · A UNIVERSE WITHOUT LIMITS ══════ -->
+    <section class="sec universe" id="universe" data-draftly-section-id="universe">
+      <div class="stage">
+        <img data-draftly-asset-id="img-10" data-draftly-default-src="https://picsum.photos/seed/oodles-sunny/1600/900"
+          class="uni__plate" src="https://picsum.photos/seed/oodles-sunny/1600/900"
+          alt="Floating islands with a giant tree.">
+        <img data-draftly-asset-id="img-11" data-draftly-default-src="https://picsum.photos/seed/oodles-summer/1600/900"
+          class="uni__plate" src="https://picsum.photos/seed/oodles-summer/1600/900"
+          alt="A canyon village with treehouses.">
+        <img data-draftly-asset-id="img-12" data-draftly-default-src="https://picsum.photos/seed/oodles-street/1600/900"
+          class="uni__plate" src="https://picsum.photos/seed/oodles-street/1600/900"
+          alt="A rainbow arch above pastel clouds.">
+        <img data-draftly-asset-id="img-13" data-draftly-default-src="https://picsum.photos/seed/oodles-pop/1600/900"
+          class="uni__plate" src="https://picsum.photos/seed/oodles-pop/1600/900" alt="A neon night forest.">
+        <span class="glass-pill glass-pill--lg uni__type" id="uniType"><em>a universe without limits</em></span>
+      </div>
+    </section>
+
+    <!-- ══════ 07 · CREATE WITH US ══════ -->
+    <section class="sec create" id="create" data-draftly-section-id="create">
+      <div class="stage">
+        <svg class="squiggle squiggle--big" id="squiggle2" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"
+          aria-hidden="true">
+          <path
+            d="M-60 120 C 300 40, 620 60, 900 220 C 1160 370, 1080 620, 820 640 C 590 660, 520 470, 700 430 C 900 390, 1120 560, 1160 760"
+            fill="none" stroke="url(#neon2)" stroke-width="44" stroke-linecap="rouFnd" />
+        </svg>
+        <h2 class="create__txt" id="createTxt" data-draftly-id="create-heading">earn with us</h2>
+      </div>
+    </section>
+
+    <!-- ══════ 08 · FINALE LOGO ══════ -->
+    <section class="sec finale" id="finale" data-draftly-section-id="finale">
+      <div class="stage">
+        <div class="logo" id="logo">
+          <span class="logo__blob logo__blob--w" id="blobW"></span>
+          <span class="logo__blob logo__blob--b" id="blobB"></span>
+          <span class="mark mark--xl" id="logoMark">
+            <i class="o1"><span class="glyph">O</span><span class="globe"
+                id="globe"></span></i><i>N</i><i>I</i><i>G</i><i>H</i><i>T</i>
+          </span>
+          <span class="badge badge--xl" id="logoBadge"><b>DREAM</b></span>
+          <span class="hand" id="hand" aria-hidden="true">
+            <svg viewBox="0 0 64 64">
+              <path
+                d="M22 60c-6 0-9-4-12-9L4 40c-2-3 1-7 5-6 3 1 5 4 7 6V12c0-4 3-6 6-6s6 2 6 6v14c1-1 3-2 5-2 3 0 5 2 5 5 2-2 6-2 8 0 2 1 3 3 3 5 3-1 7 1 7 5v11c0 8-6 15-14 15H22z"
+                fill="#eaf4ff" stroke="#c9dcf3" stroke-width="2" stroke-linejoin="round" />
+            </svg>
+          </span>
+          <div class="toys" id="toys" aria-hidden="true">
+            <span style="--x:-38vmin;--y:-14vmin">🌼</span><span style="--x:-22vmin;--y:-24vmin">✏️</span>
+            <span style="--x:14vmin;--y:-24vmin">💡</span><span style="--x:28vmin;--y:-20vmin">💗</span>
+            <span style="--x:40vmin;--y:-8vmin">🎨</span><span style="--x:36vmin;--y:16vmin">🖱️</span>
+            <span style="--x:14vmin;--y:22vmin">🔍</span><span style="--x:-10vmin;--y:24vmin">📌</span>
+            <span style="--x:-30vmin;--y:16vmin">🎮</span><span style="--x:-44vmin;--y:4vmin">🩷</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════ FOOTER ══════ -->
+  <footer class="foot" id="footer" data-draftly-section-id="footer">
+    <div class="foot__inner">
+      <div class="foot__cta">
+        <h2 data-draftly-id="footer-heading">📦 100% Value Delivered: Every ₹1,000 activation includes verified<br>
+          products delivered straight to your doorstep or inbox.</h2>
+        <div class="foot__btns">
+          <a class="pill pill--white" href="#top" data-cursor="iOS">SIGN IN</a>
+          <a class="pill" href="#top" data-cursor="Android">SIGN UP</a>
+        </div>
+      </div>
+      <div class="foot__cols">
+        <div>
+          <h4>Product</h4><a href="#reimagine">Reimagine</a><a href="#wall">Styles</a><a href="#universe">Worlds</a><a
+            href="#top">Community</a>
+        </div>
+        <div>
+          <h4>Company</h4><a href="#top">About</a><a href="#top">Careers</a><a href="#top">Press kit</a><a
+            href="#top">Contact</a>
+        </div>
+        <div>
+          <h4>Legal</h4><a href="#top">Privacy</a><a href="#top">Terms</a><a href="#top">Content policy</a>
+        </div>
+      </div>
+      <div class="foot__base">
+        <span class="mark">Night Dream</span><span class="badge"><b>AI</b></span>
+        <span class="foot__copy">© 2026 Night Dream Labs, Inc. · Night Dream · made with 🩷 in Brooklyn</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ══════ LIGHTBOX (sphere card click) ══════ -->
+  <div class="lb" id="lb" aria-hidden="true">
+    <div class="lb__bg" id="lbBg"></div>
+    <figure class="lb__fig" id="lbFig"><img data-draftly-asset-id="img-14" id="lbImg" alt="">
+      <figcaption id="lbCap"></figcaption>
+    </figure>
+    <button class="lb__close" id="lbClose" aria-label="Close" data-cursor="close">×</button>
+  </div>
+
+  <script src="assets/vendor/gsap.min.js"></script>
+  <script src="assets/vendor/ScrollTrigger.min.js"></script>
+  <script src="assets/vendor/CustomEase.min.js"></script>
+  <script src="assets/vendor/lenis.min.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
