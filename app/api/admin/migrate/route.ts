@@ -20,7 +20,7 @@ export async function GET() {
         sponsorId TEXT,
         parentId TEXT,
         position TEXT, -- 'LEFT', 'RIGHT', or NULL (for root)
-        status TEXT DEFAULT 'active', -- 'active' or 'inactive'
+        status TEXT DEFAULT 'pending', -- 'pending' or 'active' or 'inactive'
         leftCount INTEGER DEFAULT 0,
         rightCount INTEGER DEFAULT 0,
         matchedPairs INTEGER DEFAULT 0,
