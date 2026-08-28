@@ -60,6 +60,9 @@ export default function AdminDashboard() {
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
   const [pendingPayouts, setPendingPayouts] = useState<PayoutRequest[]>([]);
   const [userList, setUserList] = useState<UserRecord[]>([]);
+  const [pendingActivations, setPendingActivations] = useState<any[]>([]);
+  const [activationLoading, setActivationLoading] = useState(true);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -125,9 +128,63 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchPendingActivations = async () => {
+    try {
+      setActivationLoading(true);
+      const token = localStorage.getItem('mlm_token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch('/api/admin/activate-user', { headers });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setPendingActivations(json.pendingUsers);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching activations:', e);
+    } finally {
+      setActivationLoading(false);
+    }
+  };
+
+  const handleActivateUser = async (userId: string) => {
+    try {
+      setActivatingId(userId);
+      const token = localStorage.getItem('mlm_token');
+      
+      const res = await fetch('/api/admin/activate-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ targetUserId: userId }),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert(`User ${userId} activated successfully!`);
+        await fetchPendingActivations();
+        await fetchAdminData();
+        await fetchUserDirectory(searchQuery);
+      } else {
+        alert(data.message || 'Activation failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error activating user');
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
   useEffect(() => {
     fetchAdminData();
     fetchUserDirectory();
+    fetchPendingActivations();
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -387,6 +444,65 @@ export default function AdminDashboard() {
             )}
           </div>
 
+          {/* Member Activation Requests Card */}
+          <div className="card" style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.125rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <UserCheck size={18} color="#059669" />
+              ID Activation Approvals
+            </h3>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1.25rem' }}>
+              Review new registrations and grant binary network activation.
+            </p>
+
+            {activationLoading ? (
+              <div style={styles.emptyState}>Loading activations...</div>
+            ) : pendingActivations.length === 0 ? (
+              <div style={styles.emptyState}>
+                <p>✅ No pending user activations right now.</p>
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>User ID</th>
+                      <th>Full Name</th>
+                      <th>Email</th>
+                      <th>Sponsor ID</th>
+                      <th>Position</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingActivations.map((u) => (
+                      <tr key={u.id}>
+                        <td style={{ fontWeight: 700, fontFamily: 'monospace', color: '#0f172a' }}>{u.id}</td>
+                        <td style={{ fontWeight: 650 }}>{u.fullName}</td>
+                        <td style={{ color: '#64748b' }}>{u.email}</td>
+                        <td style={{ fontWeight: 600, color: '#16a34a', fontFamily: 'monospace' }}>{u.sponsorId || '—'}</td>
+                        <td>
+                          <span className="badge" style={{ fontSize: '0.625rem', padding: '2px 8px', backgroundColor: u.position === 'LEFT' ? '#eff6ff' : '#f0fdf4', color: u.position === 'LEFT' ? '#2563eb' : '#166534', border: u.position === 'LEFT' ? '1px solid #bfdbfe' : '1px solid #bbf7d0' }}>
+                            {u.position || 'LEFT'}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => handleActivateUser(u.id)}
+                            disabled={activatingId === u.id}
+                            className="btn btn-primary"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', backgroundColor: '#059669' }}
+                          >
+                            {activatingId === u.id ? 'Activating...' : 'Approve & Activate'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* User Directory Table Card */}
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -507,6 +623,7 @@ export default function AdminDashboard() {
                     onChange={(e) => setEditStatus(e.target.value)}
                   >
                     <option value="active">Active Partner</option>
+                    <option value="pending">Pending Activation</option>
                     <option value="inactive">Inactive Partner</option>
                   </select>
                 </div>
